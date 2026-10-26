@@ -190,12 +190,8 @@ class AMinidumpBufferedReader:
 		Reads a 4 byte small-endian singed int on 32 bit arch
 		Reads an 8 byte small-endian singed int on 64 bit arch
 		"""
-		if self.reader.sysinfo.ProcessorArchitecture == PROCESSOR_ARCHITECTURE.AMD64:
-			t = await self.read(8)
-			return int.from_bytes(t, byteorder = 'little', signed = True)
-		else:
-			t = t = await self.read(4)
-			return int.from_bytes(t, byteorder = 'little', signed = True)
+		t = await self.read(self.reader.sizeof_ptr)
+		return int.from_bytes(t, byteorder = 'little', signed = True)
 
 	async def read_uint(self):
 		"""
@@ -203,12 +199,8 @@ class AMinidumpBufferedReader:
 		Reads a 4 byte small-endian unsinged int on 32 bit arch
 		Reads an 8 byte small-endian unsinged int on 64 bit arch
 		"""
-		if self.reader.sysinfo.ProcessorArchitecture == PROCESSOR_ARCHITECTURE.AMD64:
-			t = await self.read(8)
-			return int.from_bytes(t, byteorder = 'little', signed = False)
-		else:
-			t = await self.read(4)
-			return int.from_bytes(t, byteorder = 'little', signed = False)
+		t = await self.read(self.reader.sizeof_ptr)
+		return int.from_bytes(t, byteorder = 'little', signed = False)
 
 	async def find(self, pattern):
 		"""
@@ -294,8 +286,12 @@ class AMinidumpFileReader:
 		self.sizeof_long = 4
 		self.unpack_long = '<L'
 		if minidumpfile.sysinfo.ProcessorArchitecture in [PROCESSOR_ARCHITECTURE.AMD64, PROCESSOR_ARCHITECTURE.AARCH64]:
-			self.sizeof_ptr = 8
-			self.unpack_ptr = '<Q'
+			if minidumpfile.is_wow64:
+				self.sizeof_ptr = 4
+				self.unpack_ptr = '<L'
+			else:
+				self.sizeof_ptr = 8
+				self.unpack_ptr = '<Q'
 		elif self.sysinfo.ProcessorArchitecture in [PROCESSOR_ARCHITECTURE.INTEL,
 				PROCESSOR_ARCHITECTURE.ARM]:
 			self.sizeof_ptr = 4
